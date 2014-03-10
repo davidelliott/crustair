@@ -1,5 +1,5 @@
 # Hardware
-Parametric designs are provided in .scad format, these allow the part dimensions to be easily customised. The .scad files can be opened and modified using [OpenSCAD)[http://www.openscad.org/]. 
+Parametric designs are provided in .scad format, these allow the part dimensions to be easily customised. The .scad files can be opened and modified using [OpenSCAD](http://www.openscad.org/). 
 
 ## Basic chamber
 This is the original design and can be made very simply using pipe and laser-cut acrylic sheet. 
