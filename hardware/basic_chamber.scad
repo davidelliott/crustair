@@ -1,5 +1,5 @@
 chamber_internal_radius=15;
-chamber_height=15;
+chamber_height=25;
 chamber_wall_thickness=2;
 tripod_offset=45;
 
