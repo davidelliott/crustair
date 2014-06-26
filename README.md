@@ -1,17 +1,10 @@
-# Soil respiration apparatus
+# Record of analysis
 
-This microcosm system was designed for simple automated replicated soil respiration experiments to help understand the role of microbes in soils. 
+David R Elliott, Andrew D Thomas, Stephen R Hoon, Robin Sen (2014)
 
-This was supported by initially Levehulme Trust grant F/00426/H specifically for studies on carbon flux through biologically crusted Kalahari soils. 
+[Niche partitioning of bacterial communities in biological crusts and soils under grasses, shrubs and trees in the Kalahari](http://dx.doi.org/10.1007/s10531-014-0684-8)
 
-Further development is being supported with Dalton Research Instutute funding (Manchester Metropolitan University) to make the system more generally applicable and extensible.
+Biodiversity and Conservation. April 2014
 
-## Hardware
-Design files for hardware components such as the chamber itself.
-
-## Firmware
-Firmware for microcontrollers which will control the experiment and log data.
-
-## Software
-Software for additional control and logging, via interface with the microcontrollers.
-
+## Compatibility
+tested 8 April 2014: phyloseq 1.6.1, vegan 2.0-10

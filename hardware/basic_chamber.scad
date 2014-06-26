@@ -1,5 +1,5 @@
-chamber_internal_radius=15;
-chamber_height=15;
+chamber_internal_radius=10;
+chamber_height=25;
 chamber_wall_thickness=2;
 tripod_offset=45;
 
@@ -8,10 +8,6 @@ flange_radius=chamber_external_radius+4;
 
 flange_hole_distance = (flange_radius - chamber_external_radius)/2;
 fn_resolution=100; //quality vs render time
-
-module flange_old(thick=1) {
-	cylinder(h=thick, r1=flange_radius, r2=flange_radius, $fn=fn_resolution);
-}
 
 module screw_holes(n_holes=4, radius=flange_radius-flange_hole_distance) {
 	for ( i = [0 : n_holes] ){
