@@ -11,6 +11,8 @@ box_length=chamber_external_radius*2;
 pipe_radius=3;
 oring_xs_radius=1.5;
 
+h_in=1.5*chamber_height/4;
+
 fn_resolution=100; //quality vs render time
 
 module shell2() {
@@ -28,11 +30,27 @@ cube([box_length+10,chamber_internal_radius_top*2,chamber_height+5]);
 }
 
 module pipe_control_cutout() {
-cutout_y=5+chamber_wall_thickness/2;
+offset=5;
+cutout_y=offset+chamber_wall_thickness/2;
 translate([chamber_wall_middle_radius*1.5,chamber_wall_middle_radius-cutout_y+pipe_radius,2.5]){
-cube([100,cutout_y,chamber_height+5]);
+cube([100,cutout_y+offset*2,chamber_height+5]);
 }	
 }
+
+module pipe_control_surface() {
+offset=10;
+cutout_y=offset+chamber_wall_thickness/2;
+translate([chamber_wall_middle_radius*1.5,chamber_wall_middle_radius+offset,chamber_height+0.8*h_in]){
+rotate([90,0,0]) {
+cylinder(r=50,h=cutout_y+offset,$fn=fn_resolution);
+}
+}	
+}
+
+//union(){
+//pipe_control_cutout();
+//pipe_control_surface();
+//}
 
 *pipe_control_cutout();
 module chamber_hole(){
@@ -62,11 +80,10 @@ chamber_in_out_holes();
 
 
 module lpipe() {
-	h_in=1.5*chamber_height/4;
 
 	translate([0,chamber_wall_middle_radius,h_in]) {
 			rotate([0,90,0]) {
-				cylinder(h=box_length,r=pipe_radius,$fn=fn_resolution);
+				cylinder(h=box_length+2,r=pipe_radius,$fn=fn_resolution);
 			}
 		translate([0,1,0]) {
 			rotate([90,0,0]) {
@@ -83,7 +100,7 @@ module lid_seal() {
 }
 
 module zpipe() {
-	h_out=3*chamber_height/4;
+	h_out=1.5*chamber_height/4;
 
 			// pipe entering chamber
 			translate([0,0,h_out]) {
@@ -92,7 +109,7 @@ module zpipe() {
 				}
 			}
 	// pipe exiting end housing
-	translate([chamber_wall_middle_radius,chamber_wall_middle_radius,h_out]) {
+	translate([chamber_wall_middle_radius,chamber_wall_middle_radius-15,h_out]) {
 			rotate([0,90,0]) {
 				cylinder(h=box_length,r=pipe_radius,$fn=fn_resolution);
 			}
@@ -100,7 +117,7 @@ module zpipe() {
 	// perpendicular pipe joining the other 2
 		translate([0,1,0]) {
 			rotate([90,0,0]) {
-				cylinder(h=chamber_wall_middle_radius+2,r=pipe_radius,$fn=fn_resolution);
+				cylinder(h=chamber_wall_middle_radius-15+pipe_radius,r=pipe_radius,$fn=fn_resolution);
 			}
 		}
 	}
@@ -112,7 +129,7 @@ module chamber_in_out_holes() {
 	zpipe();
 	lpipe();
 	lid_seal();
-pipe_control_cutout();
+pipe_control_surface();
 }
 
 
