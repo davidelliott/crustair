@@ -39,6 +39,29 @@ foot_holes();
 // MODULES //
 /////////////
 
+pipe_control_cutout();
+
+
+module pipe_control_cutout() {
+xpos=chamber_external_radius*2;
+ypos=chamber_wall_middle_radius-pipe_radius;
+offset=5;
+cutout_y=offset+chamber_wall_thickness/2;
+
+difference(){
+translate([xpos,ypos,2.5]){
+cube([200,cutout_y+offset*2,chamber_height+5]);
+}	
+
+translate([xpos+120,ypos+cutout_y+offset,chamber_height+0.8*h_in]){
+rotate([90,0,0]) {
+cylinder(r=50,h=cutout_y,$fn=fn_resolution);
+}
+}
+}	
+}
+
+
 // pipe_out
 // this pipe should have the shortest length because the gas will
 // be measured. Better to get to the detecter by a short route.
