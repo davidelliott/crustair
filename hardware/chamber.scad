@@ -1,13 +1,22 @@
 // Main configurable parameters
-chamber_internal_radius=100;
-chamber_height=50;
-mink_r=30; // radius for curved edges
+chamber_internal_radius=25; // radius of the soil surface
+chamber_internal_step_width=5; // This is used to avoid having a sharp(=delicate) edge at the bottom of the chamber
+chamber_internal_radius_top=40; // larger radius at top allows sunlight to enter when sun lower in sky
+chamber_height=40;
+chamber_wall_thickness=20;
+mink_r=10; // radius for curved edges
 pipe_radius=3; // main air pipes
 oring_xs_radius=1.5; // o-ring seal cross section
 pipe_spacing=20; // distance between in/out pipes where they emerge in the housing
-cam_axle_height=chamber_height*0.8;
+// servo to be installed on side
+servo_length=24.6;
+servo_hole_spacing=28.6;
+servo_axis_z=11.6/2;
+servo_axis_x=7; // manual measurement - not shown on data sheet
+servo_width=11.6;
+cam_axle_height=chamber_height-servo_axis_z;
 cam_axle_radius=2.5;
-fn_resolution=100; //quality vs render time
+fn_resolution=30; //quality vs render time
 $fn=fn_resolution;
 housing_floor_thickness=5;
 ///////////////////////////////
@@ -15,10 +24,8 @@ housing_floor_thickness=5;
 // calculate important dimensions
 // Some of these would be suitable for manual setting
 // The calculations just make reasonable estimates
-chamber_external_radius=chamber_internal_radius*2;
-chamber_internal_radius_top=chamber_internal_radius*1.5;
-chamber_wall_thickness=chamber_external_radius-chamber_internal_radius_top;
-chamber_wall_middle_radius=chamber_internal_radius+(1.5*chamber_wall_thickness);
+chamber_external_radius=chamber_internal_radius_top+chamber_wall_thickness;
+chamber_wall_middle_radius=chamber_internal_radius_top+(0.5*chamber_wall_thickness);
 housing_length=chamber_external_radius;
 box_length=chamber_external_radius+housing_length;
 h_in=chamber_height/2; // height of inlet pipe
@@ -28,7 +35,7 @@ mink_d=mink_r*2;
 
 
 // Output some useful information about the object
-echo("Overall dimensions (l,w,d) in cm: ",chamber_external_radius+box_length/10,chamber_external_radius*2/10,chamber_height/10);
+echo("Overall dimensions (l,w,d) in cm: ",(chamber_external_radius+box_length)/10,chamber_external_radius*2/10,chamber_height/10);
 
 // Build the object
 difference(){
@@ -51,7 +58,7 @@ pipe_control_cutout();
 
 
 module pipe_control_cutout() {
-gap=40; // space to fix pipes in by hand after printing
+gap=15; // space to fix pipes in by hand after printing
 xpos=chamber_external_radius+housing_length+gap;
 //ypos=chamber_wall_middle_radius+(pipe_spacing/2);
 width=pipe_spacing*3;
@@ -63,7 +70,7 @@ length_middle=xpos+(length/2);
 cutout_y=width-(2*wall_thickness); //offset+chamber_wall_thickness/2;
 
 ypos=chamber_external_radius-wall_thickness-(cutout_y/2)+(pipe_spacing/2) ;
-
+first_hole=(servo_length-servo_hole_spacing)/2;
 
 // Build the main control surface: a cuboid with cylindrical cutout
 difference(){
@@ -77,7 +84,7 @@ difference(){
 	// Cut out a cylinder
 	translate([length_middle,ypos+cutout_y+wall_thickness,chamber_height+0.8*h_in]){
 		rotate([90,0,0]) {
-			cylinder(r=50,h=cutout_y,$fn=fn_resolution);
+			cylinder(r=chamber_height,h=cutout_y,$fn=fn_resolution);
 		}
 	}
 	// cut out a path for the outlet pipe
@@ -98,11 +105,28 @@ difference(){
 			cylinder(r=cam_axle_radius,h=cutout_y*2,$fn=fn_resolution);
 		}
 	}
+	
+	// cut out a hole where the servo will be mounted
+	translate([length_middle-servo_length+servo_axis_x,ypos-1,cam_axle_height-servo_axis_z]){
+	cube([servo_length,7.3,servo_width+1]);
+
+	// screw hole 1
+	translate([first_hole,7.3,servo_width/2])
+	rotate([90,0,0])
+	cylinder(r=1,h=7.3);
+
+	// screw hole 2
+	translate([first_hole+servo_hole_spacing,7.3,servo_width/2])
+	rotate([90,0,0])
+	cylinder(r=1,h=7.3);
 
 }	
 
-translate([length_middle,chamber_external_radius+width,cam_axle_height]){
-#cube([24.6,11.6,7.3]);
+
+
+
+
+
 }
 }
 
@@ -151,26 +175,28 @@ module pipe_in() {
 		}
 	}
 	// pipe exiting to housing
-	translate([chamber_external_radius*2-chamber_wall_thickness,chamber_external_radius+pipe_spacing,h_in]) {
+	translate([chamber_external_radius*2-(chamber_wall_thickness/2)-pipe_radius*2,chamber_external_radius+pipe_spacing,h_in]) {
 			rotate([0,90,0]) {
 				cylinder(h=box_length,r=pipe_radius,$fn=fn_resolution);
 			}
 	}
 
-	// pipe parallel to housing edge
-	translate([chamber_external_radius*2-chamber_wall_thickness+pipe_radius,chamber_external_radius+chamber_wall_middle_radius,h_in]) {
-	rotate([90,90,0]) {
-		cylinder(h=chamber_wall_middle_radius-20,r=pipe_radius,$fn=fn_resolution);
-	}
-	}
 
-	// pipe parallel to chamber outer wall
-	translate([chamber_external_radius-pipe_radius,chamber_external_radius+pipe_spacing+chamber_wall_middle_radius-pipe_spacing,h_in]) {
-	rotate([00,90,0]) {
-		cylinder(h=chamber_wall_middle_radius-(chamber_wall_thickness/2)+pipe_radius*3,r=pipe_radius,$fn=fn_resolution);
-	}
-	}
+	difference(){
+	// curved pipe parallel to chamber edge
+	translate([chamber_external_radius,chamber_external_radius,0])	
+	rotate_extrude(convexity = 10,$fn=100)
+	translate([chamber_wall_middle_radius,chamber_height, 0])
+	circle(r = pipe_radius, $fn=100);
 
+	// cutout section of curved pipe
+	union(){
+		translate([0,0,h_in-pipe_radius*2]){
+			cube([chamber_external_radius*2,chamber_external_radius-pipe_radius+pipe_spacing,pipe_radius*4]);
+			cube([chamber_external_radius-pipe_radius,chamber_external_radius*2,pipe_radius*4]);
+		}
+	}
+	}
 }
 
 module lid_seal() {
@@ -199,8 +225,8 @@ minkowski(){
 module chamber_hole(){
 translate([chamber_external_radius,chamber_external_radius,-1]){
 union(){
-cylinder(h=chamber_height+2, r1=chamber_internal_radius,  r2=chamber_internal_radius_top,$fn=fn_resolution*3,center=false);
-cylinder(h=chamber_height+2, r=chamber_internal_radius+10,$fn=fn_resolution*3);
+cylinder(h=chamber_height+2, r1=chamber_internal_radius-chamber_internal_step_width,  r2=chamber_internal_radius_top,$fn=fn_resolution*3,center=false);
+cylinder(h=chamber_height+2, r=chamber_internal_radius,$fn=fn_resolution*3);
 
 }
 }
@@ -227,25 +253,16 @@ x1=chamber_external_radius*2-x0;
 x2=chamber_external_radius+box_length-x0;
 
 translate([x0,y0,-1]) 
-	cylinder(h=chamber_height+2, r=9, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
 translate([x0,y1,-1]) 
-	cylinder(h=chamber_height+2, r=9, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
 translate([x1,y0,-1]) 
-	cylinder(h=chamber_height+2, r=9, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
 translate([x1,y1,-1]) 
-	cylinder(h=chamber_height+2, r=9, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
 translate([x2,y0,-1]) 
-	cylinder(h=chamber_height+2, r=9, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
 translate([x2,y1,-1]) 
-	cylinder(h=chamber_height+2, r=9, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
 }
 
-module foot_holes0() {
-	for ( i = [0 : 4] ){
-		rotate( [0, 0, i * 90]) {
-			translate([flange_radius-flange_hole_distance,0,-2]) {
-				cylinder(h=chamber_height+2, r1=1, r2=1, $fn=fn_resolution);
-			}
-		}
-	}
-}
