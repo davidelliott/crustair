@@ -3,11 +3,12 @@ chamber_internal_radius=25; // radius of the soil surface
 chamber_internal_step_width=5; // This is used to avoid having a sharp(=delicate) edge at the bottom of the chamber
 chamber_internal_radius_top=40; // larger radius at top allows sunlight to enter when sun lower in sky
 chamber_height=40;
-chamber_wall_thickness=20;
+chamber_wall_thickness=15;
 mink_r=10; // radius for curved edges
 pipe_radius=3; // main air pipes
 oring_xs_radius=1.5; // o-ring seal cross section
 pipe_spacing=20; // distance between in/out pipes where they emerge in the housing
+bolt_radius=3.2; // M6 bolt diameter = 6mm, leave some clearance
 // servo to be installed on side
 servo_length=24.6;
 servo_hole_spacing=28.6;
@@ -28,8 +29,8 @@ chamber_external_radius=chamber_internal_radius_top+chamber_wall_thickness;
 chamber_wall_middle_radius=chamber_internal_radius_top+(0.5*chamber_wall_thickness);
 housing_length=chamber_external_radius;
 box_length=chamber_external_radius+housing_length;
-h_in=chamber_height/2; // height of inlet pipe
-h_out=chamber_height/2; // height of outlet pipe
+h_in=chamber_height/4; // height of inlet pipe
+h_out=chamber_height/4; // height of outlet pipe
 mink_d=mink_r*2;
 //////////////////////////////////
 
@@ -124,9 +125,6 @@ difference(){
 
 
 
-
-
-
 }
 }
 
@@ -186,7 +184,7 @@ module pipe_in() {
 	// curved pipe parallel to chamber edge
 	translate([chamber_external_radius,chamber_external_radius,0])	
 	rotate_extrude(convexity = 10,$fn=100)
-	translate([chamber_wall_middle_radius,chamber_height, 0])
+	translate([chamber_wall_middle_radius,h_in, 0])
 	circle(r = pipe_radius, $fn=100);
 
 	// cutout section of curved pipe
@@ -253,16 +251,16 @@ x1=chamber_external_radius*2-x0;
 x2=chamber_external_radius+box_length-x0;
 
 translate([x0,y0,-1]) 
-	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=bolt_radius, $fn=fn_resolution);
 translate([x0,y1,-1]) 
-	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=bolt_radius, $fn=fn_resolution);
 translate([x1,y0,-1]) 
-	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=bolt_radius, $fn=fn_resolution);
 translate([x1,y1,-1]) 
-	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=bolt_radius, $fn=fn_resolution);
 translate([x2,y0,-1]) 
-	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=bolt_radius, $fn=fn_resolution);
 translate([x2,y1,-1]) 
-	cylinder(h=chamber_height+2, r=6, $fn=fn_resolution);
+	cylinder(h=chamber_height+2, r=bolt_radius, $fn=fn_resolution);
 }
 
