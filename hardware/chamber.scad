@@ -4,6 +4,9 @@ chamber_height=50;
 mink_r=30; // radius for curved edges
 pipe_radius=3; // main air pipes
 oring_xs_radius=1.5; // o-ring seal cross section
+pipe_spacing=20; // distance between in/out pipes where they emerge in the housing
+cam_axle_height=chamber_height*0.8;
+cam_axle_radius=2.5;
 fn_resolution=100; //quality vs render time
 $fn=fn_resolution;
 housing_floor_thickness=5;
@@ -16,11 +19,16 @@ chamber_external_radius=chamber_internal_radius*2;
 chamber_internal_radius_top=chamber_internal_radius*1.5;
 chamber_wall_thickness=chamber_external_radius-chamber_internal_radius_top;
 chamber_wall_middle_radius=chamber_internal_radius+(1.5*chamber_wall_thickness);
-box_length=chamber_external_radius*2;
+housing_length=chamber_external_radius;
+box_length=chamber_external_radius+housing_length;
 h_in=chamber_height/2; // height of inlet pipe
-h_out=chamber_height/2; // height of inlet pipe
+h_out=chamber_height/2; // height of outlet pipe
 mink_d=mink_r*2;
 //////////////////////////////////
+
+
+// Output some useful information about the object
+echo("Overall dimensions (l,w,d) in cm: ",chamber_external_radius+box_length/10,chamber_external_radius*2/10,chamber_height/10);
 
 // Build the object
 difference(){
@@ -43,22 +51,59 @@ pipe_control_cutout();
 
 
 module pipe_control_cutout() {
-xpos=chamber_external_radius*2;
-ypos=chamber_wall_middle_radius-pipe_radius;
-offset=5;
-cutout_y=offset+chamber_wall_thickness/2;
+gap=40; // space to fix pipes in by hand after printing
+xpos=chamber_external_radius+housing_length+gap;
+//ypos=chamber_wall_middle_radius+(pipe_spacing/2);
+width=pipe_spacing*3;
+wall_thickness=4;
+length=housing_length-gap;
+length_middle=xpos+(length/2);
+//ypos=(chamber_external_radius)-wall_thickness ;
 
+cutout_y=width-(2*wall_thickness); //offset+chamber_wall_thickness/2;
+
+ypos=chamber_external_radius-wall_thickness-(cutout_y/2)+(pipe_spacing/2) ;
+
+
+// Build the main control surface: a cuboid with cylindrical cutout
 difference(){
-translate([xpos,ypos,2.5]){
-cube([200,cutout_y+offset*2,chamber_height+5]);
+	// A cuboid from which we will cut away to make the shape
+	translate([xpos,ypos,housing_floor_thickness]){
+		cube([length,width,chamber_height-housing_floor_thickness]);
+	}	
+	
+	// cutting away several bits - therefore use union here to merge the cutout shapes
+	union(){
+	// Cut out a cylinder
+	translate([length_middle,ypos+cutout_y+wall_thickness,chamber_height+0.8*h_in]){
+		rotate([90,0,0]) {
+			cylinder(r=50,h=cutout_y,$fn=fn_resolution);
+		}
+	}
+	// cut out a path for the outlet pipe
+	translate([xpos-gap,chamber_external_radius-pipe_radius,h_in-pipe_radius]){
+		cube([housing_length+1,pipe_radius*2,chamber_height]);
+	}
+	
+	// cut out a path for the intlet pipe
+	translate([xpos-gap,chamber_external_radius-pipe_radius+pipe_spacing,h_in-pipe_radius]){
+		cube([housing_length+1,pipe_radius*2,chamber_height]);
+	}
+
+	}
+
+	// cut out a hole for the cam axle
+	translate([length_middle,chamber_external_radius+width,cam_axle_height]){
+		rotate([90,0,0]) {
+			cylinder(r=cam_axle_radius,h=cutout_y*2,$fn=fn_resolution);
+		}
+	}
+
 }	
 
-translate([xpos+120,ypos+cutout_y+offset,chamber_height+0.8*h_in]){
-rotate([90,0,0]) {
-cylinder(r=50,h=cutout_y,$fn=fn_resolution);
+translate([length_middle,chamber_external_radius+width,cam_axle_height]){
+#cube([24.6,11.6,7.3]);
 }
-}
-}	
 }
 
 
@@ -73,7 +118,7 @@ module pipe_out(){
 }
 
 // pipe_out2 - unfinished idea
-// putting proper curces on pipes
+// putting proper curves on pipes
 module pipe_out2(){
 	rotate([0,90,90])
 	pipe_90();
@@ -97,31 +142,32 @@ module pipe_90() {
 // pipe_in - pipe for gas flow into chamber
 // follows a winding path through the casing to enter
 // at 90 degrees compared to the pipe_out
+// calcs in this module could probably be simplified a lot.
 module pipe_in() {
-			// pipe entering chamber
-			translate([chamber_external_radius,chamber_external_radius,h_in]) {
-				rotate([0,90,90]) {
-					cylinder(h=chamber_wall_middle_radius,r=pipe_radius,$fn=fn_resolution);
-				}
-			}
+	// pipe entering chamber
+	translate([chamber_external_radius,chamber_external_radius,h_in]) {
+		rotate([0,90,90]) {
+			cylinder(h=chamber_wall_middle_radius,r=pipe_radius,$fn=fn_resolution);
+		}
+	}
 	// pipe exiting to housing
-	translate([chamber_external_radius*2-chamber_wall_thickness*1.5,chamber_external_radius+30,h_in]) {
+	translate([chamber_external_radius*2-chamber_wall_thickness,chamber_external_radius+pipe_spacing,h_in]) {
 			rotate([0,90,0]) {
 				cylinder(h=box_length,r=pipe_radius,$fn=fn_resolution);
 			}
 	}
 
 	// pipe parallel to housing edge
-	translate([chamber_external_radius*2-chamber_wall_thickness*1.5+pipe_radius,chamber_external_radius+30+chamber_wall_middle_radius-30,h_in]) {
+	translate([chamber_external_radius*2-chamber_wall_thickness+pipe_radius,chamber_external_radius+chamber_wall_middle_radius,h_in]) {
 	rotate([90,90,0]) {
-		cylinder(h=chamber_wall_middle_radius-30,r=pipe_radius,$fn=fn_resolution);
+		cylinder(h=chamber_wall_middle_radius-20,r=pipe_radius,$fn=fn_resolution);
 	}
 	}
 
 	// pipe parallel to chamber outer wall
-	translate([chamber_external_radius-pipe_radius,chamber_external_radius+30+chamber_wall_middle_radius-30,h_in]) {
-	#rotate([00,90,0]) {
-		cylinder(h=chamber_wall_middle_radius-30-10,r=pipe_radius,$fn=fn_resolution);
+	translate([chamber_external_radius-pipe_radius,chamber_external_radius+pipe_spacing+chamber_wall_middle_radius-pipe_spacing,h_in]) {
+	rotate([00,90,0]) {
+		cylinder(h=chamber_wall_middle_radius-(chamber_wall_thickness/2)+pipe_radius*3,r=pipe_radius,$fn=fn_resolution);
 	}
 	}
 
@@ -142,7 +188,7 @@ module lid_seal() {
 module shell3() {
 translate([mink_r,mink_r,0]) {
 minkowski(){
-	cube([chamber_external_radius+box_length-mink_d,chamber_external_radius*2-mink_d,chamber_height]);
+	cube([housing_length+box_length-mink_d,chamber_external_radius*2-mink_d,chamber_height]);
 	cylinder(r=mink_r,h=0.1);
 }
 }
