@@ -8,7 +8,7 @@ mink_r=10; // radius for curved edges
 pipe_radius=3; // main air pipes
 peristaltic_pipe_radius=3;
 oring_xs_radius=1.5; // o-ring seal cross section
-pipe_spacing=20; // distance between in/out pipes where they emerge in the housing
+pipe_spacing=19; // distance between in/out pipes where they emerge in the housing
 bolt_radius=3.2; // M6 bolt diameter = 6mm, leave some clearance
 // servo to be installed on side
 servo_length=24.6;
@@ -18,10 +18,20 @@ servo_axis_x=7; // manual measurement - not shown on data sheet
 servo_width=11.6;
 //cam_axle_height=chamber_height-servo_axis_z;
 cam_axle_radius=2.5;
-fn_resolution=30; //quality vs render time
+fn_resolution=100; //quality vs render time
 $fn=fn_resolution;
 housing_floor_thickness=3;
-housing_length=60;
+housing_length=65;
+
+peristaltic_valve_cutout_radius=15; // better to have this a fixed size suitable for the parts being used.
+valve_gap=15; // space to fix pipes in by hand after printing
+valve_wall_thickness_y=4; // sides where the axis / servo are
+valve_wall_thickness_x=6; // front and back
+valve_base_thickness=3;
+valve_base_length=10;
+cam_clearance=1;
+
+
 ///////////////////////////////
 
 // calculate important dimensions
@@ -33,8 +43,8 @@ box_length=chamber_external_radius+housing_length;
 h_in=chamber_height/3; // height of inlet pipe
 h_out=chamber_height/3; // height of outlet pipe
 
-//peristaltic_valve_cutout_radius=cam_axle_height-h_in+peristaltic_pipe_radius;
-peristaltic_valve_cutout_radius=15; // better to have this a fixed size suitable for the parts being used.
+valve_length=(peristaltic_valve_cutout_radius+valve_wall_thickness_x+cam_clearance)*2;
+
 cam_axle_height=h_in+peristaltic_valve_cutout_radius-peristaltic_pipe_radius;
 
 
@@ -47,6 +57,7 @@ echo("Overall dimensions (l,w,d) in cm: ",(chamber_external_radius+box_length)/1
 
 // Build the object
 difference(){
+color("yellow")
 shell3();
 chamber_hole();
 housing_hole();
@@ -54,29 +65,28 @@ pipe_out();
 pipe_in();
 lid_seal();
 foot_holes();
+valve_mounting_screw_holes();
 *pipe_screw1();
 }
 
-// add the pipe control system
-// (peristaltic valve)
-peristaltic_valve_cutout();
+// add the peristaltic valve
+color("orange")
+peristaltic_valve();
 
-// add the cam
+// add the valve cam
+color("red")
 cam();
 
 ///////////////
 // VARIABLES //
 ///////////////
 // these variables are used by the modules and probably don't need to be changed usually
-valve_gap=15; // space to fix pipes in by hand after printing
-valve_xpos=chamber_external_radius+housing_length+valve_gap;
+valve_xpos=chamber_external_radius*2+valve_gap;
 valve_width=pipe_spacing*3;
-valve_wall_thickness=4;
-valve_length=housing_length-valve_gap;
 valve_length_middle=valve_xpos+(valve_length/2);
-valve_cutout_y=valve_width-(2*valve_wall_thickness); //offset+chamber_wall_thickness/2;
-valve_ypos=chamber_external_radius-valve_wall_thickness-(valve_cutout_y/2)+(pipe_spacing/2);
-cam_clearance=1;
+valve_cutout_y=valve_width-(2*valve_wall_thickness_y); //offset+chamber_wall_thickness/2;
+valve_ypos=chamber_external_radius-valve_wall_thickness_y-(valve_cutout_y/2)+(pipe_spacing/2);
+
 
 /////////////
 // MODULES //
@@ -86,12 +96,13 @@ cam_clearance=1;
 module cam() {
 	roller_radius=3; // M6 rod could be used as the roller
 
+
 	// Build a cylinder then cut parts away.
 	difference(){
 		// the main cylinder
-		translate([valve_length_middle,valve_ypos+valve_cutout_y+valve_wall_thickness,cam_axle_height]){
+		translate([valve_length_middle,valve_ypos+valve_cutout_y+valve_wall_thickness_y-(0.5*cam_clearance),cam_axle_height]){
 			rotate([90,0,0]) {
-				cylinder(r=peristaltic_valve_cutout_radius-cam_clearance,h=valve_cutout_y,$fn=fn_resolution);
+				cylinder(r=peristaltic_valve_cutout_radius-cam_clearance,h=valve_cutout_y-cam_clearance,$fn=fn_resolution);
 			}
 		}
 
@@ -117,14 +128,15 @@ module cam() {
 		}
 
 		// cut out a hole for the roller to go in
-		translate([valve_length_middle,valve_ypos+valve_cutout_y+(0.5*valve_wall_thickness),cam_axle_height-peristaltic_valve_cutout_radius+cam_clearance+roller_radius]){
+		// the hole is offset so it is only open at one end
+		translate([valve_length_middle,valve_ypos+valve_cutout_y+(0.5*valve_wall_thickness_y),cam_axle_height-peristaltic_valve_cutout_radius+cam_clearance+roller_radius]){
 			rotate([90,0,0]) {
 				cylinder(r=roller_radius+0.1,h=valve_cutout_y,$fn=fn_resolution);
 			}
 		}
 
 		// cut off the sharp edge on the roller hole
-		translate([valve_length_middle,valve_ypos+valve_cutout_y+(0.5*valve_wall_thickness),cam_axle_height-peristaltic_valve_cutout_radius+cam_clearance]){
+		translate([valve_length_middle,valve_ypos+valve_cutout_y+(0.5*valve_wall_thickness_y),cam_axle_height-peristaltic_valve_cutout_radius+cam_clearance]){
 			rotate([90,0,0]) {
 				cylinder(r=0.75*(roller_radius+0.1),h=valve_cutout_y,$fn=fn_resolution);
 			}
@@ -133,29 +145,27 @@ module cam() {
 
 	} // end of difference group
 
+	// add an axle on the end where the servo is not
+	axle_length=(2*cam_clearance)+valve_wall_thickness_y;
+	translate([valve_length_middle,valve_ypos+valve_cutout_y+valve_wall_thickness_y-(0.5*cam_clearance)+axle_length+0.01,cam_axle_height]){
+		rotate([90,0,0]) {
+			cylinder(r=cam_axle_radius,h=valve_cutout_y-cam_clearance+axle_length,$fn=fn_resolution);
+		}
+	}
+
 	// draw the roller
-		translate([valve_length_middle,valve_ypos+valve_cutout_y+(0.5*valve_wall_thickness),cam_axle_height-peristaltic_valve_cutout_radius+cam_clearance+roller_radius]){
+		translate([valve_length_middle,valve_ypos+valve_cutout_y+(0.5*valve_wall_thickness_y),cam_axle_height-peristaltic_valve_cutout_radius+cam_clearance+roller_radius]){
 			rotate([90,0,0]) {
-				#cylinder(r=roller_radius,h=valve_cutout_y-(0.5*valve_wall_thickness),$fn=fn_resolution);
+				cylinder(r=roller_radius,h=valve_cutout_y-(0.5*valve_wall_thickness_y)-(0.5*cam_clearance),$fn=fn_resolution);
 			}
 		}
-
-
 }
 
 
 
 
 
-
-
-
-
-
-
-
-module peristaltic_valve_cutout() {
-
+module peristaltic_valve() {
 
 first_hole=(servo_length-servo_hole_spacing)/2;
 
@@ -169,18 +179,18 @@ difference(){
 	// cutting away several bits - therefore use union here to merge the cutout shapes
 	union(){
 	// Cut out a cylinder
-	translate([valve_length_middle,valve_ypos+valve_cutout_y+valve_wall_thickness,cam_axle_height]){
+	translate([valve_length_middle,valve_ypos+valve_cutout_y+valve_wall_thickness_y,cam_axle_height]){
 		rotate([90,0,0]) {
 			cylinder(r=peristaltic_valve_cutout_radius,h=valve_cutout_y,$fn=fn_resolution);
 		}
 	}
 	// cut out a path for the outlet pipe
-	translate([valve_xpos-valve_gap,chamber_external_radius-pipe_radius,h_in-pipe_radius]){
+	translate([valve_xpos-1,chamber_external_radius-pipe_radius,h_in-pipe_radius]){
 		cube([housing_length+1,pipe_radius*2,chamber_height]);
 	}
 	
 	// cut out a path for the intlet pipe
-	translate([valve_xpos-valve_gap,chamber_external_radius-pipe_radius+pipe_spacing,h_in-pipe_radius]){
+	translate([valve_xpos-1,chamber_external_radius-pipe_radius+pipe_spacing,h_in-pipe_radius]){
 		cube([housing_length+1,pipe_radius*2,chamber_height]);
 	}
 
@@ -212,13 +222,46 @@ difference(){
 	// cut off the top because we cannot build over the top of the servo hole
 	// anyway nothing is needed above the control surface
 	translate([valve_xpos-1,valve_ypos-1,cam_axle_height+servo_axis_z]){
-	cube([valve_length+2,valve_width+1,servo_width+1]);
+	cube([valve_length+2,valve_width+1.1,chamber_height]);
 	}
 
-
-}
 }
 
+	// add a base with screw holes
+	difference(){
+	translate([valve_xpos-valve_base_length,valve_ypos,housing_floor_thickness]){
+		cube([valve_length+(2*valve_base_length),valve_width,valve_base_thickness]);
+	}	
+
+	// screw holes
+	valve_mounting_screw_holes();
+	}
+
+}
+
+module valve_mounting_screw_holes() {
+z=-0.5*chamber_height;
+y0=valve_ypos+(0.1*valve_width);
+y1=valve_ypos+(0.9*valve_width);
+y2=valve_ypos+(0.5*valve_width);
+
+x0=valve_xpos-0.5*valve_base_length;
+x1=valve_xpos+0.5*valve_base_length+valve_length;
+
+	//valve_width
+	translate([x0,y0,z]) 
+		cylinder(h=chamber_height, r=2.6, $fn=fn_resolution);
+	translate([x0,y1,z]) 
+		cylinder(h=chamber_height, r=2.6, $fn=fn_resolution);
+	translate([x0,y2,z]) 
+		cylinder(h=chamber_height, r=2.6, $fn=fn_resolution);
+	translate([x1,y0,z]) 
+		cylinder(h=chamber_height, r=2.6, $fn=fn_resolution);
+	translate([x1,y1,z]) 
+		cylinder(h=chamber_height, r=2.6, $fn=fn_resolution);
+	translate([x1,y2,z]) 
+		cylinder(h=chamber_height, r=2.6, $fn=fn_resolution);
+}
 
 // pipe_out
 // this pipe should have the shortest length because the gas will
