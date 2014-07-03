@@ -1,4 +1,5 @@
 // Main configurable parameters
+explode_multiplier=0; // set at zero to disable exploding the design - output will appear as finished object
 chamber_internal_radius=25; // radius of the soil surface
 chamber_internal_step_width=5; // This is used to avoid having a sharp(=delicate) edge at the bottom of the chamber
 chamber_internal_radius_top=40; // larger radius at top allows sunlight to enter when sun lower in sky
@@ -16,6 +17,8 @@ servo_hole_spacing=28.6;
 servo_axis_z=11.6/2;
 servo_axis_x=7; // manual measurement - not shown on data sheet
 servo_width=11.6;
+servo_depth=24; // this is the depth of the main body along the rotating axis
+servo_mounting_depth=(24-16.7);
 //cam_axle_height=chamber_height-servo_axis_z;
 cam_axle_radius=2.5;
 	roller_radius=3; // M6 rod could be used as the roller
@@ -34,7 +37,6 @@ cam_clearance=1;
 
 
 ///////////////////////////////
-
 // calculate important dimensions
 // Some of these would be suitable for manual setting
 // The calculations just make reasonable estimates
@@ -47,7 +49,6 @@ h_out=chamber_height/3; // height of outlet pipe
 valve_length=(peristaltic_valve_cutout_radius+valve_wall_thickness_x+cam_clearance)*2;
 
 cam_axle_height=h_in+peristaltic_valve_cutout_radius-peristaltic_pipe_radius;
-
 
 mink_d=mink_r*2;
 //////////////////////////////////
@@ -98,6 +99,7 @@ valve_ypos=chamber_external_radius-valve_wall_thickness_y-(valve_cutout_y/2)+(pi
 
 
 module cam(explode=0) {
+explode=explode*explode_multiplier;
 
 	// Build a cylinder then cut parts away.
 	difference(){
@@ -158,6 +160,7 @@ module cam(explode=0) {
 
 
 module cam_roller(explode=0) {
+explode=explode*explode_multiplier;
 
 	// draw the roller
 		translate([valve_length_middle,valve_ypos+valve_cutout_y+(0.5*valve_wall_thickness_y),cam_axle_height-peristaltic_valve_cutout_radius+cam_clearance+roller_radius+explode]){
@@ -169,7 +172,30 @@ module cam_roller(explode=0) {
 }
 
 
+// servo - this is not part of the design but it's shape needs to be subtracted from some parts
+module servo(explode=0) {
+first_hole=(servo_length-servo_hole_spacing)/2;
+	// cut out a hole where the servo will be mounted
+	translate([valve_length_middle-servo_length+servo_axis_x,valve_ypos-servo_depth+servo_mounting_depth-0.01,cam_axle_height-servo_axis_z+explode]){
+	cube([servo_length,servo_depth,servo_width+1]);
+
+	// screw hole 1
+	translate([first_hole,7.3,servo_width/2])
+	rotate([90,0,0])
+	cylinder(r=1,h=7.3);
+
+	// screw hole 2
+	translate([first_hole+servo_hole_spacing,7.3,servo_width/2])
+	rotate([90,0,0])
+	cylinder(r=1,h=7.3);
+
+}	
+}
+color("blue")
+servo(explode=00);
+
 module peristaltic_valve(explode=0) {
+explode=explode*explode_multiplier;
 
 first_hole=(servo_length-servo_hole_spacing)/2;
 
@@ -244,6 +270,7 @@ difference(){
 }
 
 module valve_mounting_screw_holes(explode=0) {
+explode=explode*explode_multiplier;
 z=-0.5*chamber_height+explode;
 y0=valve_ypos+(0.1*valve_width);
 y1=valve_ypos+(0.9*valve_width);
